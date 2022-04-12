@@ -10,10 +10,11 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
+import "../core/component/MetaTxComponent.sol";
+
 import "./GovernanceERC20.sol";
 
-contract MerkleDistributor is Initializable {
-    
+contract MerkleDistributor is MetaTxComponent {
     using SafeERC20Upgradeable for GovernanceERC20;
 
     GovernanceERC20 public token;
@@ -27,15 +28,31 @@ contract MerkleDistributor is Initializable {
 
     event Claimed(uint256 indexed index, address indexed to, uint256 amount);
 
-    function initialize(GovernanceERC20 _token, bytes32 _merkleRoot) external initializer {
+    /// @notice Initializes the Merkle Distributor
+    /// @dev This is required for the UUPS upgradability pattern
+    /// @param _token The token where the distribution goes to.
+    /// @param _merkleRoot The merkle root of the balances.
+    function initialize(IDAO _dao, GovernanceERC20 _token, bytes32 _merkleRoot, address _gsnForwarder) external initializer {
         token = _token;
         merkleRoot = _merkleRoot;
+
+        __MetaTxComponent_init(_dao, _gsnForwarder);
+    }
+
+    /// @notice Returns the version of the GSN relay recipient
+    /// @dev Describes the version and contract for GSN compatibility
+    function versionRecipient() external view virtual override returns (string memory) {
+        return "0.0.1+opengsn.recipient.MerkleDistributor";
     }
 
     function claim(uint256 _index, address _to, uint256 _amount, bytes32[] calldata _merkleProof) external {
-        if(isClaimed(_index)) revert DistTokenClaimedAlready({index: _index});
-        if(!_verifyBalanceOnTree(_index, _to, _amount, _merkleProof))
-            revert DistTokenClaimInvalid({index: _index, to: _to, amount: _amount});
+        if(isClaimed(_index)) {
+            revert DistTokenClaimedAlready({ index: _index });
+        }
+        
+        if(!_verifyBalanceOnTree(_index, _to, _amount, _merkleProof)) {
+            revert DistTokenClaimInvalid({ index: _index, to: _to, amount: _amount });
+        }
 
         _setClaimed(_index);
         token.safeTransfer(_to, _amount);

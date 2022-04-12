@@ -14,16 +14,37 @@ import "../core/component/Permissions.sol";
 import "../core/IDAO.sol";
 
 
-contract GovernanceERC20 is AdaptiveERC165, ERC20VotesUpgradeable, Permissions {
+/**
+ * @notice The DAO Token
+ * @dev IMPORTANT: The following contract must be deployed by the proxy standard ERC-1167 or be deployed just directly.
+ * NOTE that in case the contract is deployed natively via constructor, contract will still use ERC20VotesUpgradeable
+ * instead of ERC20Votes. This will still work, since constructor anyways calls initialize which calls all the initialize
+ * functions on the next contracts on the inheritance chain.  This case might bring a little bit more gas costs
+ * due to the `__gap` storage variable that OZ upgradable contracts do, but avoiding this means we should also be
+ * having different implementations for GovernanceERC20 in such case for proxy and native one. 
+ * At the time of writing this, We are moving forward with the united version.
+ */
 
-     /// @notice The role identifier to mint new tokens
+/// @title Governance Token for the DAO
+/// @author Giorgi Lagidze - 2021
+contract GovernanceERC20 is AdaptiveERC165, ERC20VotesUpgradeable, Permissions {
+    /// @notice The role identifier to mint new tokens
     bytes32 public constant TOKEN_MINTER_ROLE = keccak256("TOKEN_MINTER_ROLE");
     
-    function __GovernanceERC20_init(
+    constructor(IDAO _dao, string memory _name, string memory _symbol) {
+        initialize(_dao, _name, _symbol);
+    }
+
+    /// @notice Initializes the Governance ERC20 Token
+    /// @dev This is required for the UUPS upgradability pattern
+    /// @param _dao The IDAO interface of the associated DAO
+    /// @param _name The name of the token
+    /// @param _symbol The symbol of the token
+    function initialize(
         IDAO _dao, 
-        string calldata _name, 
-        string calldata _symbol
-    ) internal onlyInitializing {
+        string memory _name, 
+        string memory _symbol
+    ) public initializer {
         __ERC20_init(_name, _symbol);
         __ERC20Permit_init(_name);
         __Permissions_init(_dao);
@@ -31,14 +52,6 @@ contract GovernanceERC20 is AdaptiveERC165, ERC20VotesUpgradeable, Permissions {
         _registerStandard(type(IERC20Upgradeable).interfaceId);
         _registerStandard(type(IERC20PermitUpgradeable).interfaceId);
         _registerStandard(type(IERC20MetadataUpgradeable).interfaceId);
-    }
-
-    function initialize(
-        IDAO _dao, 
-        string calldata _name, 
-        string calldata _symbol
-    ) external initializer {
-        __GovernanceERC20_init(_dao,_name,_symbol);
     }
 
     function mint(address to, uint256 amount) external auth(TOKEN_MINTER_ROLE) {
