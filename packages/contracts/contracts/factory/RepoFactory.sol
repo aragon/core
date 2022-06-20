@@ -5,20 +5,26 @@
 pragma solidity 0.8.10;
 
 import "../utils/Proxy.sol";
-import "../registry/APMRegistry.sol";
+import "../registry/ERC165Registry.sol";
 import "../APM/Repo.sol";
+import "../core/DAO.sol";
 
 /// @title RepoFactory to create a Repo
 /// @author Sarkawt Noori - Aragon Association - 2022
 /// @notice This contract is used to create a Repo and register it on APMRegistry contract.
 contract RepoFactory {
-    APMRegistry public apmRegistry;
+    ERC165Registry public repoRegistry;
     address public repoBase;
 
     error ApmRegEmpityName();
 
-    constructor(APMRegistry _apmRegistry) {
-        apmRegistry = _apmRegistry;
+    /// @notice Emitted if a new Repo is registered
+    /// @param name The name of the Repo
+    /// @param repo The address of the Repo
+    event NewRepo(string name, address repo);
+
+    constructor(ERC165Registry _repoRegistry) {
+        repoRegistry = _repoRegistry;
 
         setupBases();
     }
@@ -75,14 +81,18 @@ contract RepoFactory {
     /// @dev Does set the required permissions for the new Repo.
     /// @param _name The Repo instance just created.
     /// @param _initialOwner The initial owner wallet address
+    /// @return repo the repo created
     function _newRepo(string calldata _name, address _initialOwner) internal returns (Repo repo) {
         if (!(bytes(_name).length > 0)) revert ApmRegEmpityName();
 
-        repo = Repo(
-            createProxy(repoBase, abi.encodeWithSelector(Repo.initialize.selector, _initialOwner))
+        address repoAddr = createProxy(
+            repoBase,
+            abi.encodeWithSelector(Repo.initialize.selector, _initialOwner)
         );
+        repo = Repo(repoAddr);
 
-        apmRegistry.register(_name, address(repo));
+        repoRegistry.register(repoAddr);
+        emit NewRepo(_name, repoAddr);
     }
 
     // @dev Internal helper method to set up the required base contracts.
