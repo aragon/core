@@ -13,22 +13,12 @@ import {
   TokenFactory,
   TokenFactory__factory,
 } from '../../typechain';
+import {MintConfig, TokenConfig} from '../test-utils/token';
 
 chai.use(smock.matchers);
 
 const TOKEN_MINTER_ROLE = ethers.utils.id('TOKEN_MINTER_ROLE');
 const MERKLE_MINTER_ROLE = ethers.utils.id('MERKLE_MINTER_ROLE');
-
-interface TokenConfig {
-  addr: string;
-  name: string;
-  symbol: string;
-}
-
-interface MintConfig {
-  receivers: string[];
-  amounts: number[];
-}
 
 describe('Core: TokenFactory', () => {
   let tokenFactory: MockContract<TokenFactory>;
