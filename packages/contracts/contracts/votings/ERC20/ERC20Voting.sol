@@ -26,15 +26,16 @@ contract ERC20Voting is MajorityVoting {
     /// @param _supportRequiredPct The minimal required support in percent.
     /// @param _minDuration The minimal duration of a vote
     /// @param _token The ERC20 token used for voting
-    function initialize(
+    function __ERC20Voting_init(
         IDAO _dao,
         address _gsnForwarder,
         uint64 _participationRequiredPct,
         uint64 _supportRequiredPct,
         uint64 _minDuration,
         ERC20VotesUpgradeable _token
-    ) public initializer {
+    ) public onlyInitializing {
         _registerStandard(ERC20_VOTING_INTERFACE_ID);
+
         __MajorityVoting_init(
             _dao,
             _gsnForwarder,
