@@ -1,10 +1,9 @@
-/*
- * SPDX-License-Identifier:    MIT
- */
+// SPDX-License-Identifier:    MIT
 
 pragma solidity 0.8.10;
 
 import "../core/erc165/AdaptiveERC165.sol";
+import "../core/permission/BulkPermissionsLib.sol";
 
 /// @notice A library to share the interface ID of the abstract `PluginFactoryBase` contract.
 library PluginFactoryIDs {
@@ -19,6 +18,8 @@ abstract contract PluginFactoryBase is AdaptiveERC165 {
     /// @notice The base plugin address to clone from.
     address internal basePluginAddress;
 
+    error ProcessIdUnknown();
+
     /// @notice Initializes the plugin factory by registering its [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID.
     constructor() {
         _registerStandard(PluginFactoryIDs.PLUGIN_FACTORY_INTERFACE_ID);
@@ -27,11 +28,12 @@ abstract contract PluginFactoryBase is AdaptiveERC165 {
     /// @notice Deploys a plugin.
     /// @param _dao The address of the DAO where the plugin will be installed.
     /// @param _params The encoded paramaters needed for the plugin deployment.
-    /// @return pluginAddress The the address of the deployed plugin.
-    function deploy(address _dao, bytes calldata _params)
-        external
-        virtual
-        returns (address pluginAddress);
+    /// @return plugin The address of the plugin contract deployed.
+    /// @return permissions The permissions needed by all associated contracts.
+    function deploy(address _dao, bytes memory _params)
+        public
+        returns (address plugin, BulkPermissionsLib.Item[] memory permissions)
+    {}
 
     /// @notice Retruns the address of the base plugin.
     /// @return address The the address of the base plugin.

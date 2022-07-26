@@ -6,14 +6,17 @@ pragma solidity 0.8.10;
 /// @author Aragon Association - 2022
 /// @notice The interface required for DAOs within the Aragon App DAO framework.
 abstract contract IDAO {
-    /// @notice The `IDAO` interface ID.
-    bytes4 internal constant DAO_INTERFACE_ID = type(IDAO).interfaceId;
-
     struct Action {
         address to; // Address to call
         uint256 value; // Value to be sent with the call (for example ETH if on mainnet)
         bytes data; // FuncSig + arguments
     }
+
+    /// @notice Thrown if action execution has failed.
+    error ActionFailed();
+
+    /// @notice The `IDAO` interface ID.
+    bytes4 internal constant DAO_INTERFACE_ID = type(IDAO).interfaceId;
 
     /// @notice Checks if an address has permission on a contract via a permission identifier and considers if `ANY_ADDRESS` was used in the granting process.
     /// @param _where The address of the contract.

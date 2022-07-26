@@ -47,9 +47,6 @@ contract DAO is IDAO, Initializable, UUPSUpgradeable, PermissionManager, ERC1271
     /// @notice The address of the trusted forwarder verifying meta transactions.
     address private trustedForwarder;
 
-    /// @notice Thrown if action execution has failed.
-    error ActionFailed();
-
     /// @notice Thrown if the deposit or withdraw amount is zero.
     error ZeroAmount();
 
