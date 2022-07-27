@@ -13,15 +13,13 @@ contract PluginFactoryMock is PluginFactoryBase {
         basePluginAddress = address(new MajorityVotingMock());
     }
 
-    function deploy(address dao, bytes calldata params)
-        external
+    function deploy(address _dao, bytes calldata _params)
+        public
         override
-        returns (address packageAddress)
+        returns (address plugin, BulkPermissionsLib.Item[] memory permissions)
     {
-        packageAddress = basePluginAddress;
+        plugin = basePluginAddress;
 
-        emit NewPluginDeployed(dao, params);
-
-        return packageAddress;
+        emit NewPluginDeployed(_dao, _params);
     }
 }

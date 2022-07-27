@@ -30,8 +30,9 @@ abstract contract PluginFactoryBase is AdaptiveERC165 {
     /// @param _params The encoded paramaters needed for the plugin deployment.
     /// @return plugin The address of the plugin contract deployed.
     /// @return permissions The permissions needed by all associated contracts.
-    function deploy(address _dao, bytes memory _params)
+    function deploy(address _dao, bytes calldata _params)
         public
+        virtual
         returns (address plugin, BulkPermissionsLib.Item[] memory permissions)
     {}
 

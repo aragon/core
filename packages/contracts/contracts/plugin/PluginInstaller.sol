@@ -1,10 +1,16 @@
 import "./PluginFactoryBase.sol";
 import "./IPluginRepo.sol";
+import "../core/permission/IPermissionOracle.sol";
 import "../core/component/Component.sol";
 
 import "../core/IDAO.sol";
 
-contract GnosisMultiSig {}
+// external contract
+contract GnosisMultiSig {
+
+}
+
+contract Helper {}
 
 contract ExamplePlugin is Component {
     address internal gnosisMultiSig;
@@ -20,8 +26,10 @@ contract ExamplePlugin is Component {
 }
 
 contract ExamplePluginFactory is PluginFactoryBase {
+    mapping(address => bytes32) public placeholderToName;
+
     /// @inheritdoc PluginFactoryBase
-    function deploy(address _dao, bytes memory _params)
+    function deploy(address _dao, bytes calldata _params)
         public
         override
         returns (address plugin, BulkPermissionsLib.Item[] memory permissions)
@@ -45,36 +53,35 @@ contract ExamplePluginFactory is PluginFactoryBase {
         address _dao,
         address _gnosisMultiSig,
         uint256 _configValue
-    ) internal returns (address plugin, BulkPermissionsLib.Item[] storage permissions) {
+    ) internal returns (address plugin, BulkPermissionsLib.Item[] memory permissions) {
         // Deploy contracts
         ExamplePlugin examplePlugin = new ExamplePlugin();
+
         examplePlugin.initialize(IDAO(_dao), _gnosisMultiSig);
         plugin = address(examplePlugin);
 
         // Prepare permissions
-        permissions.push(
-            BulkPermissionsLib.Item({
-                operation: BulkPermissionsLib.Operation.Grant,
-                where: _dao,
-                who: plugin,
-                permissionID: ExamplePlugin(plugin).X_PERMISSION_ID()
-            })
-        );
-        permissions.push(
-            BulkPermissionsLib.Item({
-                operation: BulkPermissionsLib.Operation.Grant,
-                where: plugin,
-                who: _gnosisMultiSig,
-                permissionID: ExamplePlugin(plugin).Y_PERMISSION_ID()
-            })
-        );
+        permissions = new BulkPermissionsLib.Item[](2);
+
+        permissions[0] = BulkPermissionsLib.Item({
+            operation: BulkPermissionsLib.Operation.Grant,
+            where: _dao,
+            who: plugin,
+            permissionID: ExamplePlugin(plugin).X_PERMISSION_ID()
+        });
+        permissions[1] = BulkPermissionsLib.Item({
+            operation: BulkPermissionsLib.Operation.Grant,
+            where: plugin,
+            who: _gnosisMultiSig,
+            permissionID: ExamplePlugin(plugin).Y_PERMISSION_ID()
+        });
     }
 
     function _deployProcess1(address _dao)
         internal
         returns (address plugin, BulkPermissionsLib.Item[] memory permissions)
     {
-        // alternative deployment process
+        // Alternative installation
     }
 }
 
@@ -84,7 +91,11 @@ contract PluginInstaller {
         PluginFactoryBase _factory,
         bytes memory params
     ) external returns (address plugin) {
-        (plugin, ) = _factory.deploy(_dao, params);
+        BulkPermissionsLib.Item[] memory permissions;
+
+        (plugin, permissions) = _factory.deploy(_dao, params);
+
+        PermissionManager(_dao).bulk(permissions);
     }
 
     /* function uninstallPlugin(address _dao,  PluginFactory _factory)
@@ -96,40 +107,52 @@ contract PluginInstaller {
 }
 
 contract PluginSequenceInstaller {
+    uint256 nonce;
     address internal pluginInstaller;
 
     constructor(address _pluginInstaller) {
         pluginInstaller = _pluginInstaller;
     }
 
-    struct PluginInstallInfo {
+    struct DependentPlugin {
+        PluginFactoryBase pluginFactory;
+        uint8 dependeeIndex;
+        uint8 whereToReplace;
         bytes params;
     }
 
     function installSequence(
         IDAO _dao,
         PluginFactoryBase[] calldata _plugins,
-        bytes[] memory params
+        DependentPlugin[] calldata depPlugins
     ) external {
+        IDAO.Action[] memory actions = new IDAO.Action[](1);
+
+        address[] memory deployedPlugins = new address[](_plugins.length);
+
         bytes memory output;
 
         for (uint256 i = 0; i < _plugins.length; i++) {
-            // map output to input
-            address plugin = abi.decode(output, (address)); // this is to be replaced by a more complicated mapping
+            // Map output to input
+            deployedPlugins[i] = abi.decode(output, (address));
 
-            IDAO.Action memory action = IDAO.Action({
+            // Instruction to the input field that we want to replace
+
+            bytes paramsModified = depPlugins.params;
+            paramsModified = actions[0] = IDAO.Action({
                 to: pluginInstaller,
                 value: 0,
-                data: abi.encodeWithSelector(PluginInstaller.installPlugin.selector, _dao, plugin)
+                data: abi.encodeWithSelector(
+                    PluginInstaller.installPlugin.selector,
+                    _dao,
+                    staticParams[i],
+                    deployedPlugins[depPlugins[i].dependeeIndex]
+                )
             });
 
-            (bool success, bytes memory response) = action.to.call{value: action.value}(
-                action.data
-            );
+            output = IDAO(_dao).execute(nonce, actions)[0];
 
-            output = response;
-
-            if (!success) revert IDAO.ActionFailed();
+            nonce++;
         }
     }
 

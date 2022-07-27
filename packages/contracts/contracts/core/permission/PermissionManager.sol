@@ -90,6 +90,11 @@ contract PermissionManager is Initializable {
     /// @param _where The address of the target contract for which the permission is required.
     /// @param _permissionID The permission identifier required to call the method this modifier is applied to.
     modifier auth(address _where, bytes32 _permissionID) {
+        _auth(_where, _permissionID);
+        _;
+    }
+
+    function _auth(address _where, bytes32 _permissionID) internal {
         if (
             !(hasPermissions(_where, msg.sender, _permissionID, msg.data) ||
                 hasPermissions(address(this), msg.sender, _permissionID, msg.data))
@@ -100,7 +105,6 @@ contract PermissionManager is Initializable {
                 who: msg.sender,
                 permissionID: _permissionID
             });
-        _;
     }
 
     /// @notice Initialization method to set the initial owner of the permission manager.
@@ -164,21 +168,19 @@ contract PermissionManager is Initializable {
 
     /// @notice Processes bulk items on the permission manager.
     /// @dev Requires the `ROOT_PERMISSION_ID` permission.
-    /// @param _where The address of the contract.
     /// @param items The array of bulk items to process.
-    function bulk(address _where, BulkPermissionsLib.Item[] calldata items)
-        external
-        auth(_where, ROOT_PERMISSION_ID)
-    {
+    function bulk(BulkPermissionsLib.Item[] calldata items) external {
         for (uint256 i = 0; i < items.length; i++) {
             BulkPermissionsLib.Item memory item = items[i];
 
+            _auth(item.where, ROOT_PERMISSION_ID);
+
             if (item.operation == BulkPermissionsLib.Operation.Grant)
-                _grant(_where, item.who, item.permissionID);
+                _grant(item.where, item.who, item.permissionID);
             else if (item.operation == BulkPermissionsLib.Operation.Revoke)
-                _revoke(_where, item.who, item.permissionID);
+                _revoke(item.where, item.who, item.permissionID);
             else if (item.operation == BulkPermissionsLib.Operation.MakeImmutable)
-                _makeImmutable(_where, item.permissionID);
+                _makeImmutable(item.where, item.permissionID);
         }
     }
 

@@ -74,33 +74,38 @@ contract PluginRepoFactory {
         // Grant the plugin maintainer all the permissions required
         items[0] = BulkPermissionsLib.Item(
             BulkPermissionsLib.Operation.Grant,
-            pluginRepo.CREATE_VERSION_PERMISSION_ID(),
-            maintainer
+            address(pluginRepo),
+            maintainer,
+            pluginRepo.CREATE_VERSION_PERMISSION_ID()
         );
         items[1] = BulkPermissionsLib.Item(
             BulkPermissionsLib.Operation.Grant,
-            pluginRepo.UPGRADE_PERMISSION_ID(),
-            maintainer
+            address(pluginRepo),
+            maintainer,
+            pluginRepo.UPGRADE_PERMISSION_ID()
         );
         items[2] = BulkPermissionsLib.Item(
             BulkPermissionsLib.Operation.Grant,
-            pluginRepo.ROOT_PERMISSION_ID(),
-            maintainer
+            address(pluginRepo),
+            maintainer,
+            pluginRepo.ROOT_PERMISSION_ID()
         );
 
         // Revoke permissions from the plugin repository factory (`address(this)`).
         items[3] = BulkPermissionsLib.Item(
             BulkPermissionsLib.Operation.Revoke,
-            pluginRepo.ROOT_PERMISSION_ID(),
-            address(this)
+            address(pluginRepo),
+            address(this),
+            pluginRepo.ROOT_PERMISSION_ID()
         );
         items[4] = BulkPermissionsLib.Item(
             BulkPermissionsLib.Operation.Revoke,
-            pluginRepo.CREATE_VERSION_PERMISSION_ID(),
-            address(this)
+            address(pluginRepo),
+            address(this),
+            pluginRepo.CREATE_VERSION_PERMISSION_ID()
         );
 
-        pluginRepo.bulk(address(pluginRepo), items);
+        pluginRepo.bulk(items);
     }
 
     /// @notice Internal method creating a `PluginRepo` via the [ERC-1967](https://eips.ethereum.org/EIPS/eip-1967) proxy pattern from the provided base contract and registering it in the Aragon plugin registry.
